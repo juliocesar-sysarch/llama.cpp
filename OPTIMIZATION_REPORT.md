@@ -76,8 +76,21 @@ Todos os testes foram executados com **8 threads físicas** (`-t 8`), modelo tra
   - `llama.dll`
 
 ### 4.2 Compilação Nativa das DLLs no Windows
-Abra o **x64 Native Tools Command Prompt for VS 2022** no Windows:
 
+#### Opção A: Clang / LLVM + Ninja (Altamente Recomendado para Zen 2)
+Permite gerar código vetorizado especificamente com `-march=znver2`:
+```cmd
+winget install LLVM.LLVM Ninja-build.Ninja
+
+cd %USERPROFILE%\caminho\para\llama.cpp
+git checkout feat/zen2-memory-compute-opt
+
+cmake -B build-win -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DBUILD_SHARED_LIBS=ON -DGGML_AVX2=ON -DGGML_FMA=ON -DGGML_F16C=ON -DCMAKE_C_FLAGS="-march=znver2 -O3" -DCMAKE_CXX_FLAGS="-march=znver2 -O3"
+cmake --build build-win --config Release -j 8
+```
+
+#### Opção B: MSVC (Visual Studio 2022)
+Abra o **x64 Native Tools Command Prompt for VS 2022**:
 ```cmd
 cd %USERPROFILE%\caminho\para\llama.cpp
 git checkout feat/zen2-memory-compute-opt
@@ -93,8 +106,12 @@ cmake --build build-win --config Release --target ggml-cpu llama -j 8
 2. **Backup das DLLs Originais**:
    Renomeie `ggml-cpu.dll` e `llama.dll` originais para `.bak`.
 3. **Substituição**:
-   Copie as novas DLLs geradas em `build-win\bin\Release\` para a pasta de runners do Ollama.
-4. **Reiniciar o Serviço do Ollama**:
+   Copie as novas DLLs geradas em `build-win\bin\` para a pasta de runners do Ollama.
+4. **Configurar Variáveis de Ambiente do Ollama**:
+   Defina as variáveis no Windows (System Properties -> Environment Variables):
+   - `OLLAMA_FLASH_ATTENTION=1`
+   - `OLLAMA_KV_CACHE_TYPE=q4_0`
+5. **Reiniciar o Serviço do Ollama**:
    ```cmd
    taskkill /F /IM ollama.exe
    ollama serve
