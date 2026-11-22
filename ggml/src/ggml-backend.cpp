@@ -2844,6 +2844,8 @@ static void ggml_backend_cpu_buffer_free_buffer(ggml_backend_buffer_t buffer) {
         if (VirtualFree(buffer->context, 0, MEM_RELEASE)) {
             return;
         }
+        _aligned_free(buffer->context);
+        return;
     }
 #endif
     ggml_aligned_free(buffer->context, buffer->size);

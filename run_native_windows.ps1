@@ -54,6 +54,24 @@ Write-Host "[OK] Modelo pronto: $ModelPath" -ForegroundColor Green
 # ------------------------------------------------------------------------------
 Write-Host "`n[Passo 3/5] Compilando binarios nativos (Release)..." -ForegroundColor Yellow
 
+# Auto-recarregar caminhos de ferramentas recem-instaladas (CMake, Ninja, LLVM, MinGW)
+$FreshPath = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
+$env:Path = "$FreshPath;$env:Path"
+
+# Buscar executaveis nos diretorios comuns do WinGet se ainda nao estiverem no PATH
+$WingetPkgDir = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages"
+if (Test-Path $WingetPkgDir) {
+    $CmakeBin = Get-ChildItem -Path $WingetPkgDir -Recurse -Filter "cmake.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($CmakeBin) { $env:Path = "$($CmakeBin.DirectoryName);$env:Path" }
+
+    $NinjaBin = Get-ChildItem -Path $WingetPkgDir -Recurse -Filter "ninja.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($NinjaBin) { $env:Path = "$($NinjaBin.DirectoryName);$env:Path" }
+
+    $GccBin = Get-ChildItem -Path $WingetPkgDir -Recurse -Filter "gcc.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($GccBin) { $env:Path = "$($GccBin.DirectoryName);$env:Path" }
+}
+
+$HasGcc   = (Get-Command gcc -ErrorAction SilentlyContinue) -ne $null
 $HasClang = (Get-Command clang -ErrorAction SilentlyContinue) -ne $null
 $HasNinja = (Get-Command ninja -ErrorAction SilentlyContinue) -ne $null
 
@@ -66,7 +84,25 @@ $CMakeArgs = @(
     "-DGGML_F16C=ON"
 )
 
-if ($HasClang -and $HasNinja) {
+if ($HasGcc -and $HasNinja) {
+    Write-Host "[OK] Utilizando GCC (MinGW UCRT) + Ninja com -march=znver2 -O3" -ForegroundColor Green
+    $CMakeArgs += @(
+        "-G", "Ninja",
+        "-DCMAKE_C_COMPILER=gcc",
+        "-DCMAKE_CXX_COMPILER=g++",
+        "-DCMAKE_C_FLAGS=-march=znver2 -O3 -fno-finite-math-only",
+        "-DCMAKE_CXX_FLAGS=-march=znver2 -O3 -fno-finite-math-only"
+    )
+} elseif ($HasGcc) {
+    Write-Host "[OK] Utilizando GCC (MinGW UCRT) com -march=znver2 -O3" -ForegroundColor Green
+    $CMakeArgs += @(
+        "-G", "MinGW Makefiles",
+        "-DCMAKE_C_COMPILER=gcc",
+        "-DCMAKE_CXX_COMPILER=g++",
+        "-DCMAKE_C_FLAGS=-march=znver2 -O3 -fno-finite-math-only",
+        "-DCMAKE_CXX_FLAGS=-march=znver2 -O3 -fno-finite-math-only"
+    )
+} elseif ($HasClang -and $HasNinja) {
     Write-Host "[OK] Utilizando LLVM/Clang + Ninja com -march=znver2 -O3" -ForegroundColor Green
     $CMakeArgs += @(
         "-G", "Ninja",
