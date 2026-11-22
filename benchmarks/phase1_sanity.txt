@@ -1,0 +1,33 @@
+
+
+Loading model... 
+
+▄▄ ▄▄
+██ ██
+██ ██  ▀▀█▄ ███▄███▄  ▀▀█▄    ▄████ ████▄ ████▄
+██ ██ ▄█▀██ ██ ██ ██ ▄█▀██    ██    ██ ██ ██ ██
+██ ██ ▀█▄██ ██ ██ ██ ▀█▄██ ██ ▀████ ████▀ ████▀
+                                    ██    ██
+                                    ▀▀    ▀▀
+
+build      : b50-e300919
+model      : models/qwen2.5-3b-instruct-q4_k_m.gguf
+ftype      : Q4_K - Medium
+modalities : text
+
+available commands:
+  /exit or Ctrl+C     stop or exit
+  /regen              regenerate the last response
+  /clear              clear the chat history
+  /read <file>        add a text file
+  /glob <pattern>     add text files using globbing pattern
+
+
+
+> Explique a arquitetura Zen 2 em uma frase:
+A arquitetura Zen 2 da AMD é uma atualização da arquitetura Zen, introduzindo melhorias em cache, núcleos, pipelines e tecnologias de eficiência de energia, para melhorar a performance e eficiência de processamento.
+
+[ Prompt: 3.5 t/s | Generation: 3.1 t/s ]
+
+
+Exiting...

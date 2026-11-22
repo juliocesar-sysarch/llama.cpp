@@ -1451,17 +1451,15 @@ UseGgmlGemm2:;
     // This is the size of the rest of the dimensions of the result
     const int64_t nr1 = ne1 * ne2 * ne3;
 
-    // Now select a reasonable chunk size.
-    int chunk_size = 16;
-
-    // We need to step up the size if it's small
-    if (nr0 == 1 || nr1 == 1) {
+    // Cache blocking: on Zen 2 (512KB L2 per core), target ~256KB working set per thread
+    // For single-token / small batch generation (nr1 <= 4), chunk src0 rows to fit within L2
+    int chunk_size = 32;
+    if (nr1 == 1) {
+        chunk_size = 128;
+    } else if (nr0 == 1) {
         chunk_size = 64;
     }
 
-    // distribute the work across the inner or outer loop based on which one is larger
-    // The number of chunks in the 0/1 dim.
-    // CEIL(nr0/chunk_size)
     int64_t nchunk0 = (nr0 + chunk_size - 1) / chunk_size;
     int64_t nchunk1 = (nr1 + chunk_size - 1) / chunk_size;
 
@@ -2702,7 +2700,18 @@ static bool ggml_thread_apply_affinity(const bool * mask) {
     err = pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
 #endif
     if (err != 0) {
-        fprintf(stderr, "warn: failed to set affinity mask 0x%llx : %s (%d)\n", (unsigned long long)mask, strerror(err), err);
+        // Fall back to all online CPUs if specific mask exceeds host topology (e.g. in VM/container)
+        cpu_set_t fallback_cpuset;
+        CPU_ZERO(&fallback_cpuset);
+        long n_online = sysconf(_SC_NPROCESSORS_ONLN);
+        if (n_online > 0) {
+            for (long c = 0; c < n_online && c < CPU_SETSIZE; c++) {
+                CPU_SET(c, &fallback_cpuset);
+            }
+#ifndef __ANDROID__
+            pthread_setaffinity_np(pthread_self(), sizeof(fallback_cpuset), &fallback_cpuset);
+#endif
+        }
         return false;
     }
 
@@ -2756,23 +2765,36 @@ static bool ggml_thread_cpumask_is_valid(const bool * mask) {
 }
 
 static void ggml_thread_cpumask_next(const bool * global_mask, bool * local_mask, bool strict, int32_t* iter) {
-    if (!strict) {
-        memcpy(local_mask, global_mask, GGML_MAX_N_THREADS);
-        return;
+    if (ggml_thread_cpumask_is_valid(global_mask)) {
+        if (!strict) {
+            memcpy(local_mask, global_mask, GGML_MAX_N_THREADS);
+            return;
+        } else {
+            memset(local_mask, 0, GGML_MAX_N_THREADS);
+            int32_t base_idx = *iter;
+            for (int32_t i = 0; i < GGML_MAX_N_THREADS; i++) {
+                int32_t idx = base_idx + i;
+                if (idx >= GGML_MAX_N_THREADS) {
+                    idx -= GGML_MAX_N_THREADS;
+                }
+                if (global_mask[idx]) {
+                    local_mask[idx] = 1;
+                    *iter = idx + 1;
+                    return;
+                }
+            }
+        }
     } else {
+        // Zen 2 / dual-CCX topology pinning:
+        // threads 0..3 pin to CCX 0 (physical cores 0..3)
+        // threads 4..7 pin to CCX 1 (physical cores 4..7)
         memset(local_mask, 0, GGML_MAX_N_THREADS);
-        int32_t base_idx = *iter;
-        for (int32_t i = 0; i < GGML_MAX_N_THREADS; i++) {
-            int32_t idx = base_idx + i;
-            if (idx >= GGML_MAX_N_THREADS) {
-                // Just a cheaper modulo
-                idx -= GGML_MAX_N_THREADS;
-            }
-            if (global_mask[idx]) {
-                local_mask[idx] = 1;
-                *iter = idx + 1;
-                return;
-            }
+        int32_t worker_idx = *iter;
+        *iter = worker_idx + 1;
+
+        int target_core = worker_idx;
+        if (target_core < 8) {
+            local_mask[target_core] = 1;
         }
     }
 }

@@ -2838,6 +2838,14 @@ static void * ggml_backend_cpu_buffer_get_base(ggml_backend_buffer_t buffer) {
 
 static void ggml_backend_cpu_buffer_free_buffer(ggml_backend_buffer_t buffer) {
     GGML_ASSERT(buffer);
+#if defined(_WIN32)
+    const size_t huge_align = 2 * 1024 * 1024;
+    if (buffer->size >= huge_align) {
+        if (VirtualFree(buffer->context, 0, MEM_RELEASE)) {
+            return;
+        }
+    }
+#endif
     ggml_aligned_free(buffer->context, buffer->size);
 }
 
@@ -2923,7 +2931,37 @@ static const char * ggml_backend_cpu_buffer_type_get_name(ggml_backend_buffer_ty
 }
 
 static ggml_backend_buffer_t ggml_backend_cpu_buffer_type_alloc_buffer(ggml_backend_buffer_type_t buft, size_t size) {
-    void * data = ggml_aligned_malloc(size);
+    void * data = NULL;
+    const size_t huge_align = 2 * 1024 * 1024;
+
+#if defined(_WIN32)
+    if (size >= huge_align) {
+        data = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE);
+    }
+    if (data == NULL) {
+        data = _aligned_malloc(size, (size >= huge_align) ? huge_align : 64);
+    }
+#elif defined(__linux__)
+    if (size >= huge_align) {
+        if (posix_memalign(&data, huge_align, size) == 0 && data != NULL) {
+#ifdef MADV_HUGEPAGE
+            madvise(data, size, MADV_HUGEPAGE);
+#endif
+        } else {
+            data = NULL;
+        }
+    }
+    if (data == NULL) {
+        data = ggml_aligned_malloc(size);
+#ifdef MADV_HUGEPAGE
+        if (data != NULL && size >= 4096) {
+            madvise(data, size, MADV_HUGEPAGE);
+        }
+#endif
+    }
+#else
+    data = ggml_aligned_malloc(size);
+#endif
 
     if (data == NULL) {
         GGML_LOG_ERROR("%s: failed to allocate buffer of size %zu\n", __func__, size);

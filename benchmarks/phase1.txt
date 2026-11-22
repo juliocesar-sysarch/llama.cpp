@@ -1,0 +1,19 @@
+| model                          |       size |     params | backend    | threads |         lm |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | ------: | ---------: | --------------: | -------------------: |
+| qwen2 3B Q4_K - Medium         |   1.95 GiB |     3.40 B | CPU        |       8 |      mlock |           pp512 |         17.71 ± 0.35 |
+| qwen2 3B Q4_K - Medium         |   1.95 GiB |     3.40 B | CPU        |       8 |      mlock |           tg128 |          3.92 ± 0.10 |
+
+build: e300919 (50)
+
+ Performance counter stats for './build/bin/llama-bench -m models/qwen2.5-3b-instruct-q4_k_m.gguf -t 8 -p 512 -n 128 -lm mlock':
+
+   <not supported>      cache-references:u                                                    
+   <not supported>      cache-misses:u                                                        
+   <not supported>      dTLB-load-misses:u                                                    
+
+     346.502860702 seconds time elapsed
+
+     590.785358000 seconds user
+      55.340808000 seconds sys
+
+

@@ -741,6 +741,9 @@ struct llama_mmap::impl {
                 advise(range.first, range.second, POSIX_MADV_WILLNEED, "POSIX_MADV_WILLNEED");
             }
         }
+#if defined(__linux__) && defined(MADV_HUGEPAGE)
+        advise(0, file->size(), MADV_HUGEPAGE, "MADV_HUGEPAGE");
+#endif
         for (const auto & range : lazy_ranges) {
             advise(range.first, range.second, POSIX_MADV_RANDOM, "POSIX_MADV_RANDOM");
         }
