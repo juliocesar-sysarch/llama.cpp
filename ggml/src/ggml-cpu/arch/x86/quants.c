@@ -803,6 +803,11 @@ void ggml_vec_dot_q4_0_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const voi
 
     // Main loop
     for (; ib < nb; ++ib) {
+        if (ib + 2 < nb) {
+            _mm_prefetch((const char *)(x + ib + 2), _MM_HINT_T0);
+            _mm_prefetch((const char *)(y + ib + 2), _MM_HINT_T0);
+        }
+
         /* Compute combined scale for the block */
         const __m256 d = _mm256_set1_ps( GGML_CPU_FP16_TO_FP32(x[ib].d) * GGML_CPU_FP16_TO_FP32(y[ib].d) );
 
@@ -2144,6 +2149,13 @@ void ggml_vec_dot_q4_K_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const voi
     __m128 acc_m = _mm_setzero_ps();
 
    for (int i = 0; i < nb; ++i) {
+        if (i + 1 < nb) {
+            _mm_prefetch((const char *)(x + i + 1), _MM_HINT_T0);
+            _mm_prefetch((const char *)((const char *)(x + i + 1) + 64), _MM_HINT_T0);
+            _mm_prefetch((const char *)(y + i + 1), _MM_HINT_T0);
+            _mm_prefetch((const char *)((const char *)(y + i + 1) + 64), _MM_HINT_T0);
+            _mm_prefetch((const char *)((const char *)(y + i + 1) + 128), _MM_HINT_T0);
+        }
 
         const float d = y[i].d * GGML_CPU_FP16_TO_FP32(x[i].d);
         const float dmin = -y[i].d * GGML_CPU_FP16_TO_FP32(x[i].dmin);
