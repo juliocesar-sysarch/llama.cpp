@@ -1,0 +1,35 @@
+0.00.967.397 W load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.09.461.154 I cmn          init: llama threadpool init, n_threads = 8
+0.11.362.074 W load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.14.094.405 I cmn          init: llama threadpool init, n_threads = 8
+
+
+Explique a arquitetura Zen 2 em uma frase: A arquitetura Zen 2 é uma atualização da arquitetura Zen que introduz melhorias em termos de eficiência energética e densidade de transistores, enquanto mantém a compatibilidade com a arquitetura anterior. 
+
+Esta frase resume a essência da arquitet
+
+1.13.877.900 I encoded   14 tokens in    4.844 seconds, speed:    2.890 t/s
+1.13.877.951 I decoded   65 tokens in   28.248 seconds, speed:    2.301 t/s
+1.13.878.043 I 
+1.13.878.102 I n_draft   = 4
+1.13.878.138 I n_predict = 65
+1.13.878.175 I n_drafted = 96
+1.13.878.211 I n_accept  = 40
+1.13.878.248 I accept    = 41.667%
+1.13.878.394 I 
+1.13.878.433 I draft:
+
+1.13.878.490 I 
+1.13.878.916 I target:
+
+1.13.879.146 I common_perf_print:    sampling time =      35.22 ms
+1.13.879.225 I common_perf_print:    samplers time =      12.40 ms /    65 tokens
+1.13.879.268 I common_perf_print:        load time =    9280.09 ms
+1.13.879.417 I common_perf_print: prompt eval time =   19173.61 ms /   134 tokens (  143.09 ms per token,     6.99 tokens per second)
+1.13.879.486 I common_perf_print:        eval time =       0.00 ms /     1 runs   (    0.00 ms per token,      inf tokens per second)
+1.13.879.669 I common_perf_print:       total time =   63760.06 ms /   135 tokens
+1.13.879.800 I common_perf_print: unaccounted time =   44551.22 ms /  69.9 %      (total - sampling - prompt eval - eval) / (total)
+1.13.879.824 
+
+I common_perf_print:    graphs reused =         23
+1.13.879.979 I common_perf_print:   graph reallocs =          0    /     0        (same size) / (changed size)
